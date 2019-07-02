@@ -14,4 +14,4 @@ Included:
 - Placeholders for versioning and build details
 - A standard Dockerfile
 
-This has been developed in Go 1.12 and uses modules 
+This has been developed in Go 1.12, uses modules and follows the https://github.com/golang-standards/project-layout guidelines for project structure
