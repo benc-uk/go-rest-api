@@ -20,8 +20,8 @@ import (
 
 var (
   healthy   = true                // Simple health flag
-  version   = "0.0.1"             // App version number, set at build time with -ldflags "-X main.version=1.2.3"
-  buildInfo = "No build details"  // Build details, set at build time with -ldflags "-X main.buildInfo='Foo bar'"
+  version   = "0.0.1"             // App version number, set at build time with -ldflags "-X 'main.version=1.2.3'"
+  buildInfo = "No build details"  // Build details, set at build time with -ldflags "-X 'main.buildInfo=Foo bar'"
 )
 
 //
@@ -46,7 +46,7 @@ func main() {
 
   // OPTIONAL - Remove this block or set to false as required
   // Handle static content if you want to host a SPA or other static HTML
-  if enableStatic := true; enableStatic {
+  if true {
     staticDirectory := envhelper.GetEnvString("STATIC_DIR", ".")
     fileServer := http.FileServer(http.Dir(staticDirectory))
     router.PathPrefix("/js").Handler(http.StripPrefix("/", fileServer))
