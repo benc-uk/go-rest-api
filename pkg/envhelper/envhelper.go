@@ -1,8 +1,16 @@
 package envhelper
 
-import _ "github.com/joho/godotenv/autoload" // Autoload .env file
-import "os"
-import "strconv"
+//
+// Simple helper library for fetching environmental variables with fallback defaults 
+// Ben Coleman, July 2019
+//
+
+import (
+	"os"
+	"strconv"
+	
+	_ "github.com/joho/godotenv/autoload" // Autoload .env file
+)
 
 // Internal function to fetch environmental variable or return default
 func getEnv(key string, defaultVal string) string {
@@ -12,12 +20,14 @@ func getEnv(key string, defaultVal string) string {
 	return defaultVal
 }
 
-// GetEnvString is a simple helper function to read an environment or return a default value.
+// GetEnvString is a simple helper function to read an environment variable 
+// as a string or return a default value.
 func GetEnvString(key string, defaultVal string) string {
 	return getEnv(key, defaultVal)
 }
 
-// GetEnvInt is a simple helper function to read an environment or return a default value.
+// GetEnvInt is a simple helper function to read an environment variable 
+// as an integer or return a default value.
 func GetEnvInt(key string, defaultVal int) int {
 	valueStr := getEnv(key, "")
 	if value, err := strconv.Atoi(valueStr); err == nil {
@@ -26,7 +36,18 @@ func GetEnvInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
-// GetEnvBool is a simple helper function to read an environment or return a default value.
+// GetEnvFloat is a simple helper function to read an environment variable 
+// as a float or return a default value.
+func GetEnvFloat(key string, defaultVal float64) float64 {
+	valueStr := getEnv(key, "")
+	if value, err := strconv.ParseFloat(valueStr, 64); err == nil {
+		return value
+	}
+	return defaultVal
+}
+
+// GetEnvBool is a simple helper function to read an environment variable 
+// as a boolean or return a default value.
 func GetEnvBool(key string, defaultVal bool) bool {
 	valueStr := getEnv(key, "")
 	if value, err := strconv.ParseBool(valueStr); err == nil {
