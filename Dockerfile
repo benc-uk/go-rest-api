@@ -18,7 +18,7 @@ WORKDIR /build/cmd/starter
 RUN CGO_ENABLED=0 GOOS=linux go build
 
 #
-# Assemble the server binary and Vue bundle into a single app
+# Runtime container uses scratch image, so will contain nothing but your app binary
 #
 FROM scratch
 WORKDIR /app 
