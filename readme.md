@@ -3,7 +3,7 @@ This is a simple boilerplate & template starter for creating a REST based HTTP m
 
 It uses as few external libraries as possible but provides a minimal getting started baseline.
 
-Included:
+Included features:
 
 - Helper for loading config from environmental variables
 - Standard code for serving static content or a SPA
