@@ -8,7 +8,7 @@ Included features:
 - Helper for loading config from environmental variables
 - Standard code for serving static content or a SPA
 - Loads config from .env (dotenv) files as required
-- Gorilla mux for routing
+- Gorilla mux for HTTP routing
 - Simple logging and CORS middleware 
 - Health and status routes
 - Placeholders for versioning and build details
