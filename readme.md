@@ -1,17 +1,94 @@
-# Go - REST Service Starter Kit
-This is a simple boilerplate & template starter for creating a REST based HTTP microservice / server in Go.
+# Go - REST API Starter Kit
 
-It uses as few external libraries as possible but provides a minimal getting started baseline.
+This is a simple boilerplate & template starter for creating a REST based HTTP microservice / backend server in Go.
 
-Included features:
+It purposefully doesn't use any framework instead focusing on the base HTTP library and [Chi](https://github.com/go-chi/chi) for routing. Approaches such as composition which are idiomatic to Go, rather than classic dependency injection have been used.
 
-- Helper for loading config from environmental variables
-- Standard code for serving static content or a SPA
-- Loads config from .env (dotenv) files as required
-- Gorilla mux for HTTP routing
-- Simple logging and CORS middleware 
-- Health and status routes
-- Placeholders for versioning and build details
-- A standard Dockerfile
+The `cmd` folder has an example of a working server/service which will accept REST requests and has a minimal API serving as a reference.
 
-This has been developed in Go 1.12, uses modules and follows the https://github.com/golang-standards/project-layout guidelines for project structure
+The `pkg` folder has a number of Go packages to support running REST APIs in Go
+
+This has been developed in Go 1.19 and follows the https://github.com/golang-standards/project-layout guidelines for project structure. Which might be an acquired taste.
+
+Also included are a standard and reusable Dockerfile & makefile, both of which inject version information into the build. The Makefile will also handle linting and running with hot-reload via `air`
+
+## Package `api`
+
+This is a baseline from which you can extend, in order to run your own API, see the `cmd/server.go` for an example of how this is done. A quick summary is:
+
+```go
+import "github.com/benc-uk/go-rest-api/pkg/api"
+
+type MyAPI struct {
+  *api.Base
+  // Add extra fields as per your implementation
+}
+
+router := chi.NewRouter()
+api := MyAPI{
+  api.NewBase(serviceName, version, buildInfo, healthy),
+}
+
+api.AddHealthEndpoint(router, "health")
+api.AddStatusEndpoint(router, "status")
+```
+
+The API will support health checks and exposes data such as version and service name. Also included are:
+
+Optional endpoints for:
+
+- Status API, returning server details as JSON
+- Prometheus metrics
+- Health checks
+- Routes you wish to return "200 OK" such as the root
+
+Optional middleware for:
+
+- Enabling CORS requests
+- Enriching HTTP request context with data extracted from JWT token
+
+## Package `auth`
+
+This package contains `JWTValidator` which can be configured and used to enforce authentication on some or all routes of the API.
+
+📝 Note: This package is generic and can be used with any code utilizing the `net/http` library
+
+The `JWTValidator` struct takes three parameters when created:
+
+- Client ID: The application client ID used to validate tokens, by checking the `aud` claim
+- Scope: A scope string, validated against the `scp` claim
+- JWKS URL: A URL of the keystore, used to fetch public keys and and verify the signature of the token
+
+It can be used two ways: `router.Use(jwtValidator.Middleware)` to add validating middleware to all routes on a router. Alternatively `jwtValidator.Protect(myHandler)` to wrap and protect certain handlers
+
+Failed validation results in a 401 response.
+
+## Package `env`
+
+Very basic set of helpers for fetching env vars with fallbacks to default values
+
+## Package `problem`
+
+Provides support for RFC-7807 standard formatted responses to API errors. Use the `Wrap()` function to wrap an error, and then `Send()` to write it to the HTTP response writer.
+
+## Package `static`
+
+Includes a `SpaHandler` for serving SPA type applications which often contain client routing logic.
+
+Usage:
+
+```go
+r := chi.NewRouter()
+
+r.Handle("/", static.SpaHandler{
+  StaticPath: "./",         // Use whatever path you wish
+  IndexFile:  "index.html", // Name of your SPA HTML file
+})
+
+srv := &http.Server{
+  Handler:      r,
+  Addr:         ":8080",
+}
+
+log.Fatal(srv.ListenAndServe())
+```

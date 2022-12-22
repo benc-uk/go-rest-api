@@ -1,16 +1,16 @@
-# =========================================================================================
-# === Build go app ========================================================================
-# =========================================================================================
-FROM golang:1.12-alpine as go-build
+# ===================================================================================
+# === Stage 1: Build the Go backend service =========================================
+# ===================================================================================
+FROM golang:1.19-alpine as go-build
 WORKDIR /build
-ARG goPackage="github.com/benc-uk/go-starter/cmd/starter"
-ARG version="0.0.1"
-ARG buildInfo="Local Docker build"
 
-ENV PORT 8000
+ARG GO_PKG="github.com/benc-uk/go-rest-api/cmd"
+ARG VERSION="0.0.1"
+ARG BUILD_INFO="Local Docker build"
+ARG CGO_ENABLED=0
 
-# Install system dependencies
-RUN apk update && apk add git gcc musl-dev
+# Install system dependencies, if CGO_ENABLED=1
+RUN if [[ $CGO_ENABLED -eq 1 ]]; then apk update && apk add gcc musl-dev; fi
 
 # Fetch and cache Go modules
 COPY go.mod .
@@ -22,18 +22,21 @@ COPY cmd/ ./cmd
 COPY pkg/ ./pkg
 
 # Now run the build
-# Disabling cgo results in a fully static binary that can run without C libs
-# Also inject version and build details 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags "-X main.version=$version -X 'main.buildInfo=$buildInfo'" \
-    -o server \
-    $goPackage
+# Inject version and build details, to be available at runtime 
+RUN GO111MODULE=on CGO_ENABLED=$CGO_ENABLED GOOS=linux \
+  go build \
+  -ldflags "-X main.version=$VERSION -X 'main.buildInfo=$BUILD_INFO'" \
+  -o server ${GO_PKG}
 
-# =========================================================================================
-# === Create production/runtime image =====================================================
-# =========================================================================================
+# ================================================================================================
+# === Stage 2: Get backend binary into a lightweight container ===================================
+# ================================================================================================
 FROM scratch
 WORKDIR /app 
+
+ENV PORT=8000
+
 EXPOSE 8000
+
 COPY --from=go-build /build/server . 
 CMD [ "./server" ]

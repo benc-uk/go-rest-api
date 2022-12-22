@@ -1,0 +1,11 @@
+root = "."
+tmp_dir = "./tmp"
+
+[build]
+  args_bin = []
+  bin = "./tmp/server"
+  cmd = "go build -o ./tmp/server github.com/benc-uk/go-rest-api/cmd"
+  include_dir  = ["cmd", "pkg"]
+
+[misc]
+  clean_on_exit = true
