@@ -8,12 +8,8 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
 	"time"
 
-	"github.com/benc-uk/go-rest-api/pkg/api"
 	"github.com/benc-uk/go-rest-api/pkg/env"
 
 	"github.com/go-chi/chi/middleware"
@@ -21,12 +17,6 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 )
-
-// ThingAPI is a wrap of the common base API with local implementation
-type ThingAPI struct {
-	*api.Base
-	// Add extra fields here: database connections, SDK clients
-}
 
 var (
 	healthy     = true               // Simple health flag
@@ -40,12 +30,9 @@ func main() {
 	// Port to listen on, change the default as you see fit
 	serverPort := env.GetEnvInt("PORT", defaultPort)
 
+	// Core of the REST API
 	router := chi.NewRouter()
-
-	api := ThingAPI{
-		api.NewBase(serviceName, version, buildInfo, healthy),
-		// Database connections, SDK clients, etc can be added here
-	}
+	api := NewThingAPI()
 
 	// Some basic middleware, change as you see fit, see: https://github.com/go-chi/chi#core-middlewares
 	router.Use(middleware.RealIP)
@@ -78,15 +65,6 @@ func main() {
 	// Main REST API routes for the application
 	api.addRoutes(router)
 
-	srv := &http.Server{
-		Handler:      router,
-		Addr:         fmt.Sprintf(":%d", serverPort),
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
-		IdleTimeout:  10 * time.Second,
-	}
-
-	log.Printf("### 🌐 %s API, listening on port: %d", serviceName, serverPort)
-	log.Printf("### 🚀 Build details: v%s (%s)", version, buildInfo)
-	log.Fatal(srv.ListenAndServe())
+	// Start the API server, this function will block until the server is stopped
+	api.StartServer(serverPort, router, 10*time.Second)
 }

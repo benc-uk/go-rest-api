@@ -33,19 +33,19 @@ api.AddHealthEndpoint(router, "health")
 api.AddStatusEndpoint(router, "status")
 ```
 
-The API will support health checks and exposes data such as version and service name. Also included are:
+The base API supports health checks and exposes data such as version and service name, plus helper functions for sending JSON & plain text responses or errors.
 
-Optional endpoints for:
+Optional endpoints which can be added to the API:
 
-- Status API, returning server details as JSON
+- Status endpoint, returning server & service details as JSON
 - Prometheus metrics
-- Health checks
-- Routes you wish to return "200 OK" such as the root
+- Health check
+- Any routes you wish to return "200 OK" such as the root (/)
 
-Optional middleware for:
+Optional middleware can be configured:
 
-- Enabling CORS requests
-- Enriching HTTP request context with data extracted from JWT token
+- Enabling permissive CORS policy (suggest you use chi/cors for finer grained control)
+- Enriching HTTP request context with data extracted from JWT token. If a JWT token is found on any request, you can specify a claim, and the value of that claim will be extracted and put into the HTTP request context.
 
 ## Package `auth`
 
@@ -71,6 +71,28 @@ Very basic set of helpers for fetching env vars with fallbacks to default values
 
 Provides support for RFC-7807 standard formatted responses to API errors. Use the `Wrap()` function to wrap an error, and then `Send()` to write it to the HTTP response writer.
 
+```go
+// A contrived example
+func (api MyAPI) getThing(resp http.ResponseWriter, req *http.Request) {
+  id := "some_id"
+  thing, err := api.dbContext.ExecuteSomeQuery(id, blah, blah)
+
+  // Return a RFC-7807 problem wrapping the database error, HTTP 500 will be sent
+	if err != nil {
+		problem.Wrap(500, req.RequestURI, "thing:"+id, err).Send(resp)
+		return
+	}
+
+  // Return a RFC-7807 problem describing the missing thing, HTTP 404 will be sent
+	if thing == nil {
+		problem.Wrap(404, req.RequestURI, "thing:"+id, errors.New("thing with that ID does not exist")).Send(resp)
+		return
+	}
+
+
+	// Handle success
+}
+```
 ## Package `static`
 
 Includes a `SpaHandler` for serving SPA type applications which often contain client routing logic.

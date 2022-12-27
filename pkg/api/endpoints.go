@@ -8,7 +8,6 @@
 package api
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"runtime"
@@ -41,7 +40,7 @@ func (b *Base) AddOKEndpoint(r chi.Router, path string) {
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK"))
+		b.ReturnText(w, "OK")
 	})
 }
 
@@ -61,10 +60,10 @@ func (b *Base) AddHealthEndpoint(r chi.Router, path string) {
 	r.HandleFunc("/"+path, func(w http.ResponseWriter, r *http.Request) {
 		if b.Healthy {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("OK: Service is healthy"))
+			b.ReturnText(w, "OK: Service is healthy")
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("Error: Service is not healthy"))
+			b.ReturnText(w, "Error: Service is not healthy")
 		}
 	})
 }
@@ -91,8 +90,6 @@ func (b *Base) AddStatusEndpoint(r chi.Router, path string) {
 			ServerHost:   r.Host,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(status)
+		b.ReturnJSON(w, status)
 	})
 }
