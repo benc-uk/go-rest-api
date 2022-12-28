@@ -24,6 +24,14 @@ type JWTValidator struct {
 	scope    string
 }
 
+type JWTMockValidator struct {
+}
+
+type AuthValidator interface {
+	Middleware(next http.Handler) http.Handler
+	Protect(next http.HandlerFunc) http.HandlerFunc
+}
+
 // NewJWTValidator creates a new JWTValidator struct
 func NewJWTValidator(clientID string, jwksURL string, scope string) JWTValidator {
 	return JWTValidator{

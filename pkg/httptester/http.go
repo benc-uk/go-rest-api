@@ -5,7 +5,7 @@
 // Helper for running API/route based tests
 // ----------------------------------------------------------------------------
 
-package testing
+package httptester
 
 import (
 	"io"
