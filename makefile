@@ -28,11 +28,11 @@ install-tools: ## 🔮 Install dev tools into project bin directory
 	@$(GOLINT_PATH) > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin/
 	@$(AIR_PATH) -v > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh
 
-lint: ## 🔍 Lint & format check only, sets exit code on error for CI
+lint: install-tools ## 🔍 Lint & format check only, sets exit code on error for CI
 	@figlet $@ || true
 	$(GOLINT_PATH) run --modules-download-mode=mod
 
-lint-fix: ## 📝 Lint & format, attempts to fix errors & modify code
+lint-fix: install-tools ## 📝 Lint & format, attempts to fix errors & modify code
 	@figlet $@ || true
 	$(GOLINT_PATH) run --modules-download-mode=mod --fix
 
@@ -53,10 +53,14 @@ build: ## 🔨 Run a local build without a container
 	  -ldflags "-X main.version=$(VERSION) -X 'main.buildInfo=$(BUILD_INFO)'" \
 	  github.com/benc-uk/go-rest-api/cmd
 
-run: ## 🏃 Run server with hot reload
+run: install-tools ## 🏃 Run server with hot reload
 	@figlet $@ || true
 	$(AIR_PATH)
 
+test: ## 🧪 Run tests
+	@figlet $@ || true
+	go test -v ./...
+	
 clean: ## 🧹 Clean up the repo
 	@figlet $@ || true
 	rm -rf bin
