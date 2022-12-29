@@ -19,13 +19,13 @@ import (
 )
 
 type TestCase struct {
-	Name           string
-	URL            string
-	Method         string
-	Body           string
-	CheckBody      string
-	CheckBodyCount int
-	CheckStatus    int
+	Name           string // Name of this test
+	URL            string // URL to test
+	Method         string // HTTP method to use
+	Body           string // Body to send (if POST etc)
+	CheckBody      string // Regex to check for in response body
+	CheckBodyCount int    // Number of times regex should match
+	CheckStatus    int    // Expected HTTP status code
 }
 
 func Run(t *testing.T, router chi.Router, testCases []TestCase) {

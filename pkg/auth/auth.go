@@ -24,10 +24,10 @@ type JWTValidator struct {
 	scope    string
 }
 
-type JWTMockValidator struct {
+type PassthroughValidator struct {
 }
 
-type AuthValidator interface {
+type Validator interface {
 	Middleware(next http.Handler) http.Handler
 	Protect(next http.HandlerFunc) http.HandlerFunc
 }
@@ -39,6 +39,10 @@ func NewJWTValidator(clientID string, jwksURL string, scope string) JWTValidator
 		jwksURL:  jwksURL,
 		scope:    scope,
 	}
+}
+
+func NewPassthroughValidator() PassthroughValidator {
+	return PassthroughValidator{}
 }
 
 // Middleware returns middleware to enforce JWT auth on all routes
@@ -61,6 +65,18 @@ func (v JWTValidator) Protect(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (v PassthroughValidator) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (v PassthroughValidator) Protect(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	}
 }
