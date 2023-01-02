@@ -149,3 +149,7 @@ Used to run through multiple test cases when integration testing an API or any H
 ## Package `dapr/pubsub`
 
 Use to register your API with Dapr pub-sub and subscribe to a given topic and register a callback handler for messages received at that topic.
+
+## Package `logging`
+
+Provides `FilteredRequestLogger` an extension of chi middleware logger which supports filtering out of requests from the logging output.

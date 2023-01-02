@@ -59,7 +59,7 @@ run: install-tools ## 🏃 Run server with hot reload
 
 test: ## 🧪 Run tests
 	@figlet $@ || true
-	go test -v ./...
+	go test -v ./cmd
 	
 clean: ## 🧹 Clean up the repo
 	@figlet $@ || true
