@@ -38,7 +38,7 @@ type Status struct {
 func (b *Base) AddOKEndpoint(r chi.Router, path string) {
 	log.Printf("### 🍏 API: 200 OK endpoint at: %s", "/"+path)
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/"+path, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		b.ReturnText(w, "OK")
 	})
