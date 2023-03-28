@@ -88,6 +88,7 @@ func (b *Base) AddStatusEndpoint(r chi.Router, path string) {
 			CPUCount:     runtime.NumCPU(),
 			ClientAddr:   r.RemoteAddr,
 			ServerHost:   r.Host,
+			Uptime:       host.Info().Uptime().String(),
 		}
 
 		b.ReturnJSON(w, status)
