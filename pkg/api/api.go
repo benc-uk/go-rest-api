@@ -76,6 +76,6 @@ func (b *Base) StartServer(port int, router chi.Router, timeout time.Duration) {
 	}
 
 	log.Printf("### 🌐 %s API, listening on port: %d", b.ServiceName, port)
-	log.Printf("### 🚀 Build details: v%s (%s)", b.Version, b.BuildInfo)
+	log.Printf("### 🚀 Build details: %s (%s)", b.Version, b.BuildInfo)
 	log.Fatal(srv.ListenAndServe())
 }
