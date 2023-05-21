@@ -28,12 +28,12 @@ func NewFilteredRequestLogger(filterOut *regexp.Regexp) func(next http.Handler) 
 }
 
 // FilteredRequestLogger is a copy of the middleware.RequestLogger function
-// - But with a reg-ex to filter & exlcude URLs from logging
-func FilteredRequestLogger(f middleware.LogFormatter, urlExcludeRegex *regexp.Regexp) func(next http.Handler) http.Handler {
+// - But with a reg-ex to filter & exclude URLs from logging
+func FilteredRequestLogger(f middleware.LogFormatter, urlRegEx *regexp.Regexp) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// Extra logic to filter out certain URLs from logging
-			if urlExcludeRegex.MatchString(r.URL.String()) {
+			if urlRegEx.MatchString(r.URL.String()) {
 				next.ServeHTTP(w, r)
 				return
 			}

@@ -62,7 +62,7 @@ func (v JWTValidator) Protect(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateRequest(r, v.clientID, v.jwksURL, v.scope) {
 			w.WriteHeader(http.StatusUnauthorized)
-			 return
+			return
 		}
 
 		next.ServeHTTP(w, r)
