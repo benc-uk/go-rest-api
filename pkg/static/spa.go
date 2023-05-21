@@ -1,3 +1,10 @@
+// ----------------------------------------------------------------------------
+// Copyright (c) Ben Coleman, 2020-2023
+// Licensed under the MIT License.
+//
+// Static content and SPA handler
+// ----------------------------------------------------------------------------
+
 package static
 
 import (

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MicahParks/keyfunc"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/MicahParks/keyfunc/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // JWTValidator is a struct that can be used to protect routes
@@ -62,26 +62,28 @@ func (v JWTValidator) Protect(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateRequest(r, v.clientID, v.jwksURL, v.scope) {
 			w.WriteHeader(http.StatusUnauthorized)
-			return
+			 return
 		}
 
 		next.ServeHTTP(w, r)
 	}
 }
 
+// PassthroughValidator middleware does nothing :)
 func (v PassthroughValidator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	})
 }
 
+// PassthroughValidator protect function does nothing :)
 func (v PassthroughValidator) Protect(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	}
 }
 
-// validateRequest internal function to validate a request
+// validateRequest is an internal function to validate a request
 func validateRequest(r *http.Request, clientID string, jwksURL string, scope string) bool {
 	// Get auth header & bearer scheme
 	authHeader := r.Header.Get("Authorization")

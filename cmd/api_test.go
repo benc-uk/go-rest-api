@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/benc-uk/go-rest-api/pkg/api"
+	"github.com/benc-uk/go-rest-api/pkg/auth"
 	"github.com/benc-uk/go-rest-api/pkg/httptester"
 )
 
@@ -31,7 +32,14 @@ func TestUsers(t *testing.T) {
 	// Add optional endpoints
 	api.AddOKEndpoint(router, "")
 
-	api.addRoutes(router)
+	// Test the protected routes and JWT validation
+	router.Group(func(protectedRouter chi.Router) {
+		jwtValidator := auth.NewJWTValidator("ignored", "https://change_me/jwks_endpoint", "ignored")
+		protectedRouter.Use(jwtValidator.Middleware)
+		api.addProtectedRoutes(protectedRouter)
+	})
+
+	api.addPublicRoutes(router)
 
 	httptester.Run(t, router, testCases)
 }
@@ -67,7 +75,7 @@ var testCases = []httptester.TestCase{
 	{
 		Name:           "invalid method",
 		URL:            "/things",
-		Method:         "DELETE",
+		Method:         "PUT",
 		Body:           ``,
 		CheckBody:      ``,
 		CheckBodyCount: 0,
@@ -81,5 +89,14 @@ var testCases = []httptester.TestCase{
 		CheckBody:      ``,
 		CheckBodyCount: 0,
 		CheckStatus:    404,
+	},
+	{
+		Name:           "delete thing",
+		URL:            "/things/1",
+		Method:         "DELETE",
+		Body:           ``,
+		CheckBody:      ``,
+		CheckBodyCount: 0,
+		CheckStatus:    401,
 	},
 }

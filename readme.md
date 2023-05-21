@@ -81,56 +81,55 @@ There are two implementations of the `Validator` interface:
 
 The `JWTValidator` takes three parameters when created:
 
-- Client ID: The application client ID used to validate tokens, by checking the `aud` claim
-- Scope: A scope string, validated against the `scp` claim
-- JWKS URL: A URL of the keystore, used to fetch public keys and and verify the signature of the token
+- *Client ID*: An application client ID used when validating tokens, by checking the `aud` claim.
+- *Scope*: A scope string, validated against the `scp` claim.
+- *JWKS URL*: A URL of the keystore used to fetch public keys and and verify the signature of the token. This assumes tokens are signed with a public/private key algorithm e.g. RSA
 
 It can be used two ways: `router.Use(jwtValidator.Middleware)` to add validating middleware to all routes on a router. Alternatively `jwtValidator.Protect(myHandler)` to wrap and protect certain handlers
 
-Failed validation results in a 401 response.
+Failed validation results in a HTTP 401 being returned.
 
 ## Package `env`
 
-Very basic set of helpers for fetching env vars with fallbacks to default values
+Very basic set of helpers for fetching env vars with fallbacks to default values.
 
 ## Package `problem`
 
 Provides support for RFC-7807 standard formatted responses to API errors. Use the `Wrap()` function to wrap an error, and then `Send()` to write it to the HTTP response writer.
 
 ```go
-// A contrived example
+// A rather contrived example
 func (api MyAPI) getThing(resp http.ResponseWriter, req *http.Request) {
   id := "some_id"
   thing, err := api.dbContext.ExecuteSomeQuery(id, blah, blah)
 
   // Return a RFC-7807 problem wrapping the database error, HTTP 500 will be sent
-	if err != nil {
-		problem.Wrap(500, req.RequestURI, "thing:"+id, err).Send(resp)
-		return
-	}
+  if err != nil {
+    problem.Wrap(500, req.RequestURI, "thing:"+id, err).Send(resp)
+    return
+  }
 
   // Return a RFC-7807 problem describing the missing thing, HTTP 404 will be sent
-	if thing == nil {
-		problem.Wrap(404, req.RequestURI, "thing:"+id, errors.New("thing with that ID does not exist")).Send(resp)
-		return
-	}
+  if thing == nil {
+    problem.Wrap(404, req.RequestURI, "thing:"+id, errors.New("thing with that ID does not exist")).Send(resp)
+    return
+  }
 
-
-	// Handle success
+  // Handle success
 }
 ```
 
 ## Package `static`
 
-Includes a `SpaHandler` for serving SPA type applications which often contain client routing logic.
+Includes a `SpaHandler` for serving SPA style static applications which may contain client routing logic. It acts as a wrapper around the standard `http.FileServer` but rather than returning 404s it will return a fallback index file, e.g. *index.html*
 
 Usage:
 
 ```go
 r := chi.NewRouter()
 
-r.Handle("/", static.SpaHandler{
-  StaticPath: "./",         // Use whatever path you wish
+r.Handle("/*", static.SpaHandler{
+  StaticPath: "./",         // Path to app content directory
   IndexFile:  "index.html", // Name of your SPA HTML file
 })
 

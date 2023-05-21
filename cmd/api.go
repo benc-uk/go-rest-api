@@ -18,10 +18,15 @@ type ThingAPI struct {
 	// Add extra fields here: database connections, SDK clients
 }
 
-func (api ThingAPI) addRoutes(r chi.Router) {
+func (api ThingAPI) addPublicRoutes(r chi.Router) {
 	r.Get("/things", api.getThings)
 	r.Get("/things/{id}", api.getThingByID)
 	r.Post("/things", api.createThing)
+}
+
+func (api ThingAPI) addProtectedRoutes(r chi.Router) {
+	// Put methods here that should be protected & need JWT auth, e.g. POST, PUT, DELETE
+	r.Delete("/things/{id}", api.deleteThing)
 }
 
 func NewThingAPI() ThingAPI {

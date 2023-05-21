@@ -2,15 +2,17 @@
 // Copyright (c) Ben Coleman, 2020
 // Licensed under the MIT License.
 //
-// Sample API server, using the go-rest-api package
+// Sample and example API server, using the go-rest-api package
 // ----------------------------------------------------------------------------
 
 package main
 
 import (
+	"os"
 	"regexp"
 	"time"
 
+	"github.com/benc-uk/go-rest-api/pkg/auth"
 	"github.com/benc-uk/go-rest-api/pkg/env"
 	"github.com/benc-uk/go-rest-api/pkg/logging"
 
@@ -45,28 +47,39 @@ func main() {
 	// Some custom middleware for CORS & JWT username
 	router.Use(api.SimpleCORSMiddleware)
 
-	// *OPTIONAL* Add Prometheus metrics endpoint, must be before the other routes
-	api.AddMetricsEndpoint(router, "metrics")
+	// Group of protected routes, this can be all or some of the routes
+	router.Group(func(protectedRouter chi.Router) {
+		// Fetch the config from the environment, e.g. clientID, JWKS URL, scope etc
+		clientID := os.Getenv("AUTH_CLIENT_ID")
 
-	// Add optional root, health & status endpoints
-	api.AddHealthEndpoint(router, "health")
-	api.AddStatusEndpoint(router, "status")
-	api.AddOKEndpoint(router, "")
+		jwtValidator := auth.NewJWTValidator(clientID, "https://change_me/jwks_endpoint", "Some.Scope")
 
-	// *OPTIONAL* Configure JWT validator with our token store and application scope
-	// - Use chi router groups to add auth middleware to specific routes
-	//jwtValidator := auth.NewJWTValidator("https://login.microsoftonline.com/common/discovery/v2.0/keys", "Some.Scope")
-	//router.Use(jwtValidator.Middleware)
+		protectedRouter.Use(jwtValidator.Middleware)
+
+		// These routes do create, update, delete operations
+		api.addProtectedRoutes(protectedRouter)
+	})
+
+	// Group of anonymous public routes
+	router.Group(func(publicRouter chi.Router) {
+		// Add Prometheus metrics endpoint, must be before the other routes
+		api.AddMetricsEndpoint(publicRouter, "metrics")
+
+		// Add optional root, health & status endpoints
+		api.AddHealthEndpoint(publicRouter, "health")
+		api.AddStatusEndpoint(publicRouter, "status")
+		api.AddOKEndpoint(publicRouter, "")
+
+		// Rest of the app routes are public and don't need JWT auth
+		api.addPublicRoutes(publicRouter)
+	})
 
 	// *OPTIONAL* Add support for single page applications (SPA) with client-side routing
 	//log.Printf("### 🌏 Serving static files for SPA from: %s", "./")
-	//router.Handle("/", static.SpaHandler{
-	//	StaticPath: "./",
+	//router.Handle("/*", static.SpaHandler{
+	//	StaticPath: "./static",
 	//	IndexFile:  "index.html",
 	//})
-
-	// Main REST API routes for the application
-	api.addRoutes(router)
 
 	// Start the API server, this function will block until the server is stopped
 	api.StartServer(serverPort, router, 10*time.Second)

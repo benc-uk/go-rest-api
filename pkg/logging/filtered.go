@@ -1,3 +1,10 @@
+// ----------------------------------------------------------------------------
+// Copyright (c) Ben Coleman, 2020-2022
+// Licensed under the MIT License.
+//
+// Filtered logging middleware for Chi, can exclude certain URLs from logging
+// ----------------------------------------------------------------------------
+
 package logging
 
 import (
@@ -21,12 +28,12 @@ func NewFilteredRequestLogger(filterOut *regexp.Regexp) func(next http.Handler) 
 }
 
 // FilteredRequestLogger is a copy of the middleware.RequestLogger function
-// - But with a filter to exclude certain URLs from logging
-func FilteredRequestLogger(f middleware.LogFormatter, filterOut *regexp.Regexp) func(next http.Handler) http.Handler {
+// - But with a reg-ex to filter & exlcude URLs from logging
+func FilteredRequestLogger(f middleware.LogFormatter, urlExcludeRegex *regexp.Regexp) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// Extra logic to filter out certain URLs from logging
-			if filterOut.MatchString(r.URL.String()) {
+			if urlExcludeRegex.MatchString(r.URL.String()) {
 				next.ServeHTTP(w, r)
 				return
 			}

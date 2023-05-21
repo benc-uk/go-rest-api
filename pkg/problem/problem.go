@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// Copyright (c) Ben Coleman, 2020
+// Copyright (c) Ben Coleman, 2020-2023
 // Licensed under the MIT License.
 //
 // RFC-7807 implementation for sending standard format API errors

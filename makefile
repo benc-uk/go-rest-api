@@ -12,8 +12,8 @@ IMAGE_NAME := $(IMAGE_REG)/$(IMAGE_REPO)
 # Things you don't want to change
 REPO_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 # Tools
-GOLINT_PATH := $(REPO_DIR)/bin/golangci-lint
-AIR_PATH := $(REPO_DIR)/bin/air
+GOLINT_PATH := $(REPO_DIR)/.tools/golangci-lint
+AIR_PATH := $(REPO_DIR)/.tools/air
 
 .EXPORT_ALL_VARIABLES:
 .PHONY: help image push build run lint lint-fix clean
@@ -23,18 +23,18 @@ help: ## 💬 This help message :)
 	@figlet $@ || true
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install-tools: ## 🔮 Install dev tools into project bin directory
+install-tools: ## 🔮 Install dev tools into project .tools directory
 	@figlet $@ || true
-	@$(GOLINT_PATH) > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin/
-	@$(AIR_PATH) -v > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh
+	@$(GOLINT_PATH) > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./.tools
+	@$(AIR_PATH) -v > /dev/null 2>&1 || curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s -- -b ./.tools
 
 lint: install-tools ## 🔍 Lint & format check only, sets exit code on error for CI
 	@figlet $@ || true
-	$(GOLINT_PATH) run --modules-download-mode=mod
+	$(GOLINT_PATH) run
 
 lint-fix: install-tools ## 📝 Lint & format, attempts to fix errors & modify code
 	@figlet $@ || true
-	$(GOLINT_PATH) run --modules-download-mode=mod --fix
+	$(GOLINT_PATH) run --fix
 
 image: ## 📦 Build container image
 	@figlet $@ || true
@@ -59,9 +59,10 @@ run: install-tools ## 🏃 Run server with hot reload
 
 test: ## 🧪 Run tests
 	@figlet $@ || true
-	go test -v ./cmd
+	go test -v -count=1 ./cmd 
 	
 clean: ## 🧹 Clean up the repo
 	@figlet $@ || true
+	rm -rf .tools
 	rm -rf bin
 	rm -rf tmp

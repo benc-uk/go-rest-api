@@ -9,6 +9,7 @@ package httptester
 
 import (
 	"io"
+	"log"
 	"net/http/httptest"
 	"regexp"
 	"strconv"
@@ -32,6 +33,7 @@ func Run(t *testing.T, router chi.Router, testCases []TestCase) {
 	for _, test := range testCases {
 		t.Run(test.Name, func(t *testing.T) {
 
+			log.Printf("### Running test: %s %s", test.Method, test.URL)
 			req := httptest.NewRequest(test.Method, test.URL, strings.NewReader(test.Body))
 
 			req.Header.Set("Content-Type", "application/json")

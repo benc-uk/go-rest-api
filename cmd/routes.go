@@ -54,3 +54,18 @@ func (api ThingAPI) getThingByID(resp http.ResponseWriter, req *http.Request) {
 func (api ThingAPI) createThing(resp http.ResponseWriter, req *http.Request) {
 	api.ReturnOKJSON(resp)
 }
+
+// Delete a thing by ID, dummy implementation
+func (api ThingAPI) deleteThing(resp http.ResponseWriter, req *http.Request) {
+	id := chi.URLParam(req, "id")
+
+	// Example of using problem package to send a 404
+	if id != "1" {
+		problem.Wrap(404, req.RequestURI, "thing", errors.New("thing not found")).Send(resp)
+		return
+	}
+
+	// Send a 204 No Content response
+	resp.WriteHeader(http.StatusNoContent)
+	api.ReturnText(resp, "Thing deleted")
+}
