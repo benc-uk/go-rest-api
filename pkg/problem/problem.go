@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 //
 // RFC-7807 implementation for sending standard format API errors
+// See https://datatracker.ietf.org/doc/html/rfc7807
 // ----------------------------------------------------------------------------
 
 package problem

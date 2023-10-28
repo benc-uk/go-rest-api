@@ -1,10 +1,10 @@
 # Go - REST API Starter Kit & Library
 
-This is a template & starter for creating a REST based HTTP microservice / backend server in Go, with supporting functions and helpers. It's fairly opinionated and acts a little like a very minimal mini framework.
+This is a set of packages for creating a REST based HTTP microservices / backend servers in Go, with supporting functions and helpers. It's fairly opinionated and acts a little like a very minimal mini framework.
 
 It purposefully doesn't use any framework instead focusing on the base HTTP library and [Chi](https://github.com/go-chi/chi) for routing. Approaches such as composition which are idiomatic to Go, rather than classic dependency injection have been used.
 
-The `cmd` folder has an example of a working server/service which will accept REST requests and has a minimal API serving as a reference.
+The `cmd` folder has an example of a working server/service which will accept REST requests and has a minimal API, serving as a reference.
 
 The `pkg` folder has a number of Go packages to support running REST APIs in Go, these are described in detail below
 
@@ -31,8 +31,11 @@ This is a baseline from which you can extend, in order to run your own API, see 
 import "github.com/benc-uk/go-rest-api/pkg/api"
 
 type MyAPI struct {
+  // Embed and wrap the base API struct
   *api.Base
+  
   // Add extra fields as per your implementation
+  foo Foo
 }
 
 router := chi.NewRouter()
