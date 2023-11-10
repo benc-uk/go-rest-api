@@ -1,8 +1,8 @@
 # Go - REST API Starter Kit & Library
 
-This is a set of packages for creating a REST based HTTP microservices / backend servers in Go, with supporting functions and helpers. It's fairly opinionated and acts a little like a very minimal mini framework.
+This is a set of packages for creating REST & HTTP based microservices / backend servers in Go, with supporting functions and helpers. It's fairly opinionated and acts a little like a very minimal mini framework.
 
-It purposefully doesn't use any framework instead focusing on the base HTTP library and [Chi](https://github.com/go-chi/chi) for routing. Approaches such as composition which are idiomatic to Go, rather than classic dependency injection have been used.
+It purposefully doesn't use any web framework instead focusing on the base HTTP library and [Chi](https://github.com/go-chi/chi) for routing. Approaches such as composition which are idiomatic to Go, rather than classic dependency injection have been used.
 
 The `cmd` folder has an example of a working server/service which will accept REST requests and has a minimal API, serving as a reference.
 
@@ -16,10 +16,11 @@ pkg/
 ├── env
 ├── httptester
 ├── problem
+├── sse
 └── static
 ```
 
-This has been developed in Go 1.19 and follows the https://github.com/golang-standards/project-layout guidelines for project structure. Which might be an acquired taste.
+This has been developed in Go 1.19+ and follows the https://github.com/golang-standards/project-layout guidelines for project structure. Which might be an acquired taste.
 
 Also included are a standard and reusable Dockerfile & makefile, both of which inject version information into the build. The Makefile will also handle linting and running with hot-reload via `air`
 
@@ -155,3 +156,38 @@ Use to register your API with Dapr pub-sub and subscribe to a given topic and re
 ## Package `logging`
 
 Provides `FilteredRequestLogger` an extension of chi middleware logger which supports filtering out of requests from the logging output.
+
+## Package `sse`
+
+Provides support for [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events). Two implementations are provided:
+
+- Simple backend helper that can stream SSE events over HTTP, 
+- A broker which can be used to broadcast messages to multiple clients and keep track of connections/disconnections
+
+Note. This package is standalone and will work with any Go HTTP implementation, you don't need to be using the `api` or the other packages here.
+
+Usage:
+
+```go
+srv := sse.NewSSEServer[string]()
+
+// MessageAdapter is optional, but can format messages
+srv.MessageAdapter = func(message string) sse.SSE {
+  return sse.SSE{
+    Event: "message",
+    Data:  "Some prefix " + message,
+  }
+}
+
+// Send a message every 1 second
+go func() {
+  for {
+    srv.Messages <- "Hello! " + time.Now().String()
+    time.Sleep(1 * time.Second)
+  }
+}()
+
+http.HandleFunc("/stream-events", func(w http.ResponseWriter, r *http.Request) {
+  srv.Stream(w, *r)
+})
+```
