@@ -110,14 +110,11 @@ func (broker *Broker[T]) listen() {
 		select {
 		// CASE: New client has connected
 		case clientID := <-broker.newClients:
-			//log.Printf("User '%s' added: %d active clients", clientID, len(broker.clients))
 			broker.ClientConnectedHandler(clientID)
 
 		// CASE: Client has detached and we want to stop sending them messages
 		case clientID := <-broker.closingClients:
 			delete(broker.clients, clientID)
-
-			//log.Printf("User '%s' disconnected: %d active clients", clientID, len(broker.clients))
 			broker.ClientDisconnectedHandler(clientID)
 
 		// CASE: Message incoming on the broadcast channel
@@ -140,10 +137,12 @@ func (broker *Broker[T]) GetClients() []string {
 	return clients
 }
 
+// Get the number of active clients in the broker
 func (broker *Broker[T]) GetClientCount() int {
 	return len(broker.clients)
 }
 
+// Send a message to a specific client rather than broadcasting
 func (broker *Broker[T]) SendToClient(clientID string, message T) {
 	broker.clients[clientID] <- message
 }
