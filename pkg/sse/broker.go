@@ -15,7 +15,7 @@ import (
 // Struct to hold the broker state
 type Broker[T any] struct {
 	// Push messages here to broadcast them to all connected clients
-	Broadcast chan T
+	//Broadcast chan T
 
 	// New client connections, channel holds the clientID
 	newClients chan string
@@ -26,6 +26,9 @@ type Broker[T any] struct {
 	// Main connections registry, keyed on clientID
 	// Each client has their own message channel
 	clients map[string]chan T
+
+	// Map of client groups, keyed on group name
+	groups map[string][]string
 
 	// Handlers for client connection/disconnection
 	ClientConnectedHandler    func(clientID string)
@@ -39,11 +42,11 @@ type Broker[T any] struct {
 // Create a new broker
 func NewBroker[T any]() *Broker[T] {
 	broker := &Broker[T]{
-		// Buffered channel so we don't block
-		Broadcast:      make(chan T, 100),
+
 		newClients:     make(chan string),
 		closingClients: make(chan string),
 		clients:        make(map[string]chan T),
+		groups:         make(map[string][]string),
 	}
 
 	// Default message adapter, just converts to a string
@@ -57,6 +60,9 @@ func NewBroker[T any]() *Broker[T] {
 	// Placeholder handlers, do nothing by default
 	broker.ClientConnectedHandler = func(clientID string) {}
 	broker.ClientDisconnectedHandler = func(clientID string) {}
+
+	// Create a special group for all clients
+	broker.groups["*"] = []string{}
 
 	// Set it running, listening and broadcasting events
 	// Note: This runs in a goroutine so we don't block here
@@ -110,19 +116,24 @@ func (broker *Broker[T]) listen() {
 		select {
 		// CASE: New client has connected
 		case clientID := <-broker.newClients:
+			// Add this client to the special group for all clients
+			broker.AddToGroup(clientID, "*")
 			broker.ClientConnectedHandler(clientID)
 
 		// CASE: Client has detached and we want to stop sending them messages
 		case clientID := <-broker.closingClients:
 			delete(broker.clients, clientID)
-			broker.ClientDisconnectedHandler(clientID)
 
-		// CASE: Message incoming on the broadcast channel
-		case message := <-broker.Broadcast:
-			// Loop through all connected clients and broadcast the message to their message channel
-			for clientID := range broker.clients {
-				broker.clients[clientID] <- message
+			// Nasty nested loop to remove client from all groups
+			for group := range broker.groups {
+				for i, grpClientID := range broker.groups[group] {
+					if grpClientID == clientID {
+						broker.groups[group] = append(broker.groups[group][:i], broker.groups[group][i+1:]...)
+					}
+				}
 			}
+
+			broker.ClientDisconnectedHandler(clientID)
 		}
 	}
 }
@@ -145,4 +156,47 @@ func (broker *Broker[T]) GetClientCount() int {
 // Send a message to a specific client rather than broadcasting
 func (broker *Broker[T]) SendToClient(clientID string, message T) {
 	broker.clients[clientID] <- message
+}
+
+// Send a message to a specific group of clients
+func (broker *Broker[T]) SendToGroup(group string, message T) {
+	for _, clientID := range broker.groups[group] {
+		broker.clients[clientID] <- message
+	}
+}
+
+// Send a message to all clients
+func (broker *Broker[T]) SendToAll(message T) {
+	for _, clientID := range broker.clients {
+		clientID <- message
+	}
+}
+
+// Add a client to a group
+func (broker *Broker[T]) AddToGroup(clientID string, group string) {
+	broker.groups[group] = append(broker.groups[group], clientID)
+}
+
+// Remove a client from a group
+func (broker *Broker[T]) RemoveFromGroup(clientID string, group string) {
+	for i, grpClientID := range broker.groups[group] {
+		if grpClientID == clientID {
+			broker.groups[group] = append(broker.groups[group][:i], broker.groups[group][i+1:]...)
+		}
+	}
+}
+
+// Get all groups
+func (broker *Broker[T]) GetGroups() []string {
+	var groups []string
+	for group := range broker.groups {
+		groups = append(groups, group)
+	}
+
+	return groups
+}
+
+// Get all clients in a group
+func (broker *Broker[T]) GetGroupClients(group string) []string {
+	return broker.groups[group]
 }

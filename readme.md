@@ -161,18 +161,37 @@ Provides `FilteredRequestLogger` an extension of chi middleware logger which sup
 
 Provides support for [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events). Two implementations are provided:
 
-- Simple backend helper that can stream SSE events over HTTP, 
-- A broker which can be used to broadcast messages to multiple clients and keep track of connections/disconnections
+- Simple backend helper that can stream SSE events over HTTP
+- A message broker which can be used to send messages to multiple clients, groups and keep track of connections/disconnections
 
 Note. This package is standalone and will work with any Go HTTP implementation, you don't need to be using the `api` or the other packages here.
 
-Usage:
+Stream usage:
 
 ```go
-srv := sse.NewSSEServer[string]()
+srv := sse.NewStreamer[string]()
+
+// Send the time to the user every 1 second
+go func() {
+  for {
+    timeNow := time.Now().Format("15:04:05")
+    srv.Messages <- "Hello it is now " + timeNow
+    time.Sleep(1 * time.Second)
+  }
+}()
+
+http.HandleFunc("/stream-time", func(w http.ResponseWriter, r *http.Request) {
+  srv.Stream(w, *r)
+})
+```
+
+Broker usage:
+
+```go
+srv := sse.NewBroker[string]()
 
 // MessageAdapter is optional, but can format messages
-srv.MessageAdapter = func(message string) sse.SSE {
+srv.MessageAdapter = func(message string, clientID string) sse.SSE {
   return sse.SSE{
     Event: "message",
     Data:  "Some prefix " + message,
@@ -182,12 +201,13 @@ srv.MessageAdapter = func(message string) sse.SSE {
 // Send a message every 1 second
 go func() {
   for {
-    srv.Messages <- "Hello! " + time.Now().String()
+    srv.SendToAll("Hello! " + time.Now().String())
     time.Sleep(1 * time.Second)
   }
 }()
 
 http.HandleFunc("/stream-events", func(w http.ResponseWriter, r *http.Request) {
-  srv.Stream(w, *r)
+  clientID := "You need to implement something here"
+  srv.Stream(clientID, w, *r)
 })
 ```
