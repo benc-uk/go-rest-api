@@ -133,8 +133,14 @@ func validateRequest(r *http.Request, clientID string, scope string, jwks *keyfu
 		return false
 	}
 
+	// Azure AD returns the audience with a prefix of api:// so we need to remove it
+	audience := claims["aud"]
+	if strings.HasPrefix(audience.(string), "api://") {
+		audience = strings.TrimPrefix(audience.(string), "api://")
+	}
+
 	// Check the token audience is the client id, this might have already been done by jwt.Parse
-	if claims["aud"] != clientID {
+	if audience != clientID {
 		log.Printf("### 🔐 Auth: Token audience '%s' does not match '%s'", claims["aud"], clientID)
 		return false
 	}
