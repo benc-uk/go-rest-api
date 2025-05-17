@@ -1,46 +1,54 @@
-# =================================================================
-# An opinionated config for linting Go code with golangci-lint
-# See https://golangci-lint.run/usage/linters/
-# =================================================================
-
+version: "2"
 linters:
   enable:
-    - revive      # Replacement for golint
-    - gofmt       # Runs gofmt as part of the linter
-    - gosec       # Find security issues
-    - wsl         # Whitespace linter
-    - stylecheck  # A few Go style rules
-    - misspell    # Find misspelled words
-    - cyclop      # Find cyclomatic complexity
-    - gocyclo     # Also find cyclomatic complexity
-    - bodyclose   # Check for HTTP body close errors
-    - nilerr      # Find bad nil/err handling
-    - nilnil      # Also find bad nil/err handling
-    - tagliatelle # Find badly named struct tags
-    #- gomnd       # Find magic numbers, enable at your peril
-
-linters-settings:
-  misspell:
-    locale: UK # Enable UK spelling
-
-  # Check struck tag naming
-  tagliatelle:
-    case:
-      use-field-name: true
+    - bodyclose
+    - cyclop
+    - gocyclo
+    - gosec
+    - misspell
+    - nilerr
+    - nilnil
+    - revive
+    - staticcheck
+    - tagliatelle
+    #- wsl
+  settings:
+    misspell:
+      locale: UK
+    revive:
+      confidence: 0.5
+      severity: error
+      enable-all-rules: false
       rules:
-        json: goCamel
-        yaml: goCamel
-
-  revive:
-    severity: error 
-    enable-all-rules: false
-    confidence: 0.5
-    rules:
-      # There are MANY rules you could enable...
-      # See https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md
-      # And https://golangci-lint.run/usage/linters/#revive
-      - name: line-length-limit
-        severity: error
-        arguments: [120]
-      - name: var-naming
-        severity: error        
+        - name: line-length-limit
+          arguments:
+            - 120
+          severity: error
+        - name: var-naming
+          severity: error
+    tagliatelle:
+      case:
+        rules:
+          json: goCamel
+          yaml: goCamel
+        use-field-name: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
