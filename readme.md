@@ -34,7 +34,7 @@ import "github.com/benc-uk/go-rest-api/pkg/api"
 type MyAPI struct {
   // Embed and wrap the base API struct
   *api.Base
-  
+
   // Add extra fields as per your implementation
   foo Foo
 }
@@ -85,9 +85,9 @@ There are two implementations of the `Validator` interface:
 
 The `JWTValidator` takes three parameters when created:
 
-- *Client ID*: An application client ID used when validating tokens, by checking the `aud` claim.
-- *Scope*: A scope string, validated against the `scp` claim.
-- *JWKS URL*: A URL of the keystore used to fetch public keys and and verify the signature of the token. This assumes tokens are signed with a public/private key algorithm e.g. RSA
+- _Client ID_: An application client ID used when validating tokens, by checking the `aud` claim.
+- _Scope_: A scope string, validated against the `scp` claim.
+- _JWKS URL_: A URL of the keystore used to fetch public keys and and verify the signature of the token. This assumes tokens are signed with a public/private key algorithm e.g. RSA
 
 It can be used two ways: `router.Use(jwtValidator.Middleware)` to add validating middleware to all routes on a router. Alternatively `jwtValidator.Protect(myHandler)` to wrap and protect certain handlers
 
@@ -125,7 +125,7 @@ func (api MyAPI) getThing(resp http.ResponseWriter, req *http.Request) {
 
 ## Package `static`
 
-Includes a `SpaHandler` for serving SPA style static applications which may contain client routing logic. It acts as a wrapper around the standard `http.FileServer` but rather than returning 404s it will return a fallback index file, e.g. *index.html*
+Includes a `SpaHandler` for serving SPA style static applications which may contain client routing logic. It acts as a wrapper around the standard `http.FileServer` but rather than returning 404s it will return a fallback index file, e.g. _index.html_
 
 Usage:
 
@@ -161,36 +161,17 @@ Provides `FilteredRequestLogger` an extension of chi middleware logger which sup
 
 Provides support for [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events). Two implementations are provided:
 
-- Simple backend helper that can stream SSE events over HTTP
+- Simple backend helper that can stream SSE events over HTTP, **WARNING!** _You probably don't want to ever use this as it supports only a single client at a time. It is here for completeness and to show how to implement SSE in Go._
 - A message broker which can be used to send messages to multiple clients, groups and keep track of connections/disconnections
 
 Note. This package is standalone and will work with any Go HTTP implementation, you don't need to be using the `api` or the other packages here.
-
-Stream usage:
-
-```go
-srv := sse.NewStreamer[string]()
-
-// Send the time to the user every 1 second
-go func() {
-  for {
-    timeNow := time.Now().Format("15:04:05")
-    srv.Messages <- "Hello it is now " + timeNow
-    time.Sleep(1 * time.Second)
-  }
-}()
-
-http.HandleFunc("/stream-time", func(w http.ResponseWriter, r *http.Request) {
-  srv.Stream(w, *r)
-})
-```
 
 Broker usage:
 
 ```go
 srv := sse.NewBroker[string]()
 
-// MessageAdapter is optional, but can format messages
+// MessageAdapter is optional, but can (re)format messages
 srv.MessageAdapter = func(message string, clientID string) sse.SSE {
   return sse.SSE{
     Event: "message",

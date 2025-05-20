@@ -10,6 +10,7 @@ package sse
 import (
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 // Struct to hold the broker state
@@ -124,13 +125,9 @@ func (broker *Broker[T]) listen() {
 		case clientID := <-broker.closingClients:
 			delete(broker.clients, clientID)
 
-			// Nasty nested loop to remove client from all groups
+			// Remove client from all groups
 			for group := range broker.groups {
-				for i, grpClientID := range broker.groups[group] {
-					if grpClientID == clientID {
-						broker.groups[group] = append(broker.groups[group][:i], broker.groups[group][i+1:]...)
-					}
-				}
+				broker.RemoveFromGroup(clientID, group)
 			}
 
 			broker.ClientDisconnectedHandler(clientID)
@@ -179,11 +176,9 @@ func (broker *Broker[T]) AddToGroup(clientID string, group string) {
 
 // Remove a client from a group
 func (broker *Broker[T]) RemoveFromGroup(clientID string, group string) {
-	for i, grpClientID := range broker.groups[group] {
-		if grpClientID == clientID {
-			broker.groups[group] = append(broker.groups[group][:i], broker.groups[group][i+1:]...)
-		}
-	}
+	broker.groups[group] = slices.DeleteFunc(broker.groups[group], func(cid string) bool {
+		return cid == clientID
+	})
 }
 
 // Get all groups
