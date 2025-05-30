@@ -181,6 +181,15 @@ func (broker *Broker[T]) RemoveFromGroup(clientID string, group string) {
 	})
 }
 
+// Remove from all groups
+func (broker *Broker[T]) RemoveFromAllGroups(clientID string) {
+	for group := range broker.groups {
+		broker.groups[group] = slices.DeleteFunc(broker.groups[group], func(cid string) bool {
+			return cid == clientID
+		})
+	}
+}
+
 // Get all groups
 func (broker *Broker[T]) GetGroups() []string {
 	var groups []string
