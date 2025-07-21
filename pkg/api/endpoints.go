@@ -54,10 +54,14 @@ func (b *Base) AddMetricsEndpoint(r chi.Router, path string) {
 }
 
 // AddHealth adds a health check endpoint to the API
-func (b *Base) AddHealthEndpoint(r chi.Router, path string) {
+func (b *Base) AddHealthEndpoint(r chi.Router, path string, preCheck func() bool) {
 	log.Printf("### 💚 API: health endpoint at: %s", "/"+path)
 
 	r.HandleFunc("/"+path, func(w http.ResponseWriter, r *http.Request) {
+		if preCheck != nil {
+			b.Healthy = preCheck()
+		}
+
 		if b.Healthy {
 			w.WriteHeader(http.StatusOK)
 			b.ReturnText(w, "OK: Service is healthy")
