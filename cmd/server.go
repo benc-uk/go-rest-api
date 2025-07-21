@@ -66,7 +66,10 @@ func main() {
 		api.AddMetricsEndpoint(publicRouter, "metrics")
 
 		// Add optional root, health & status endpoints
-		api.AddHealthEndpoint(publicRouter, "health", nil)
+		api.AddHealthEndpoint(publicRouter, "health", func() bool {
+			// Put some better logic here with a real API
+			return true
+		})
 		api.AddStatusEndpoint(publicRouter, "status")
 		api.AddOKEndpoint(publicRouter, "")
 
