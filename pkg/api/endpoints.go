@@ -54,6 +54,7 @@ func (b *Base) AddMetricsEndpoint(r chi.Router, path string) {
 }
 
 // AddHealth adds a health check endpoint to the API
+// preCheck is an optional function that can be used to perform a pre-check to set the Healthy status.
 func (b *Base) AddHealthEndpoint(r chi.Router, path string, preCheck func() bool) {
 	log.Printf("### 💚 API: health endpoint at: %s", "/"+path)
 
