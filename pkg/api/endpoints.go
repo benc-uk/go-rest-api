@@ -14,7 +14,7 @@ import (
 
 	"github.com/elastic/go-sysinfo"
 	"github.com/go-chi/chi/v5"
-	metrics "github.com/m8as/go-chi-metrics"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -48,8 +48,7 @@ func (b *Base) AddOKEndpoint(r chi.Router, path string) {
 func (b *Base) AddMetricsEndpoint(r chi.Router, path string) {
 	log.Printf("### 🔬 API: metrics endpoint at: %s", "/"+path)
 
-	r.Use(metrics.SetRequestDuration)
-	r.Use(metrics.IncRequestCount)
+	r.Use(getDefaultHTTPServerMetrics().middleware)
 	r.Handle("/"+path, promhttp.Handler())
 }
 
@@ -80,6 +79,10 @@ func (b *Base) AddStatusEndpoint(r chi.Router, path string) {
 	r.HandleFunc("/"+path, func(w http.ResponseWriter, r *http.Request) {
 		host, _ := sysinfo.Host()
 		host.Info().Uptime()
+		clientAddress := middleware.GetClientIP(r.Context())
+		if clientAddress == "" {
+			clientAddress = r.RemoteAddr
+		}
 
 		status := Status{
 			Service:      b.ServiceName,
@@ -91,7 +94,7 @@ func (b *Base) AddStatusEndpoint(r chi.Router, path string) {
 			OS:           runtime.GOOS,
 			Architecture: runtime.GOARCH,
 			CPUCount:     runtime.NumCPU(),
-			ClientAddr:   r.RemoteAddr,
+			ClientAddr:   clientAddress,
 			ServerHost:   r.Host,
 			Uptime:       host.Info().Uptime().String(),
 		}
