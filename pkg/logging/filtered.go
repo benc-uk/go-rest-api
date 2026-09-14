@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // NewFilteredRequestLogger constructs a new FilteredRequestLogger with stdout logging

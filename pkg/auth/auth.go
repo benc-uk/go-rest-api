@@ -129,7 +129,7 @@ func validateRequest(r *http.Request, clientID string, scope string, jwks *keyfu
 
 	// Check the scope includes the app scope
 	if !strings.Contains(claims["scp"].(string), scope) {
-		log.Printf("### 🔐 Auth: Scope '%s' is missing from token scope '%s'", scope, claims["scp"])
+		log.Print("### 🔐 Auth: Required scope is missing from token")
 		return false
 	}
 
@@ -141,7 +141,7 @@ func validateRequest(r *http.Request, clientID string, scope string, jwks *keyfu
 
 	// Check the token audience is the client id, this might have already been done by jwt.Parse
 	if audience != clientID {
-		log.Printf("### 🔐 Auth: Token audience '%s' does not match '%s'", claims["aud"], clientID)
+		log.Print("### 🔐 Auth: Token audience does not match client ID")
 		return false
 	}
 
