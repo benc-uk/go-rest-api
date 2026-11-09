@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sync"
 )
 
 // Struct to hold the broker state
@@ -30,6 +31,10 @@ type Broker[T any] struct {
 
 	// Map of client groups, keyed on group name
 	groups map[string][]string
+
+	// Guards clients & groups, which are written by Stream & listen and read
+	// by the send paths
+	mu sync.RWMutex
 
 	// Handlers for client connection/disconnection
 	ClientConnectedHandler    func(clientID string)
@@ -81,7 +86,9 @@ func (broker *Broker[T]) Stream(clientID string, w http.ResponseWriter, r http.R
 
 	// Each connection registers its own message channel with the broker's connections registry
 	messageChan := make(chan T)
+	broker.mu.Lock()
 	broker.clients[clientID] = messageChan
+	broker.mu.Unlock()
 
 	// Signal the broker that we have a new connection
 	broker.newClients <- clientID
@@ -91,23 +98,22 @@ func (broker *Broker[T]) Stream(clientID string, w http.ResponseWriter, r http.R
 		broker.closingClients <- clientID
 	}()
 
-	// Listen to connection closing and un-register client
-	go func() {
-		<-r.Context().Done()
-		broker.closingClients <- clientID
-	}()
-
-	// Main loop for sending messages to the client
+	// Main loop for sending messages to the client, exits when the client
+	// connection goes away
 	for {
-		// Blocks here until there is a new message in this client's messageChan
-		msg := <-messageChan
+		select {
+		case msg := <-messageChan:
+			// Convert the message to SSE format via the adapter
+			sse := broker.MessageAdapter(msg, clientID)
 
-		// Convert the message to SSE format via the adapter
-		sse := broker.MessageAdapter(msg, clientID)
+			// Write and flush immediately as we are streaming data
+			sse.Write(w)
+			w.(http.Flusher).Flush()
 
-		// Write and flush immediately as we are streaming data
-		sse.Write(w)
-		w.(http.Flusher).Flush()
+		case <-r.Context().Done():
+			// Client has disconnected, stop streaming to it
+			return nil
+		}
 	}
 }
 
@@ -117,18 +123,18 @@ func (broker *Broker[T]) listen() {
 		select {
 		// CASE: New client has connected
 		case clientID := <-broker.newClients:
-			// Add this client to the special group for all clients
 			broker.AddToGroup(clientID, "*")
 			broker.ClientConnectedHandler(clientID)
 
 		// CASE: Client has detached and we want to stop sending them messages
 		case clientID := <-broker.closingClients:
-			delete(broker.clients, clientID)
+			// Remove client from all groups, _before_ dropping the client's
+			// channel, so senders never see a group member with no channel
+			broker.RemoveFromAllGroups(clientID)
 
-			// Remove client from all groups
-			for group := range broker.groups {
-				broker.RemoveFromGroup(clientID, group)
-			}
+			broker.mu.Lock()
+			delete(broker.clients, clientID)
+			broker.mu.Unlock()
 
 			broker.ClientDisconnectedHandler(clientID)
 		}
@@ -137,6 +143,9 @@ func (broker *Broker[T]) listen() {
 
 // Get all active clients in the broker
 func (broker *Broker[T]) GetClients() []string {
+	broker.mu.RLock()
+	defer broker.mu.RUnlock()
+
 	var clients []string
 	for clientID := range broker.clients {
 		clients = append(clients, clientID)
@@ -147,35 +156,86 @@ func (broker *Broker[T]) GetClients() []string {
 
 // Get the number of active clients in the broker
 func (broker *Broker[T]) GetClientCount() int {
+	broker.mu.RLock()
+	defer broker.mu.RUnlock()
+
 	return len(broker.clients)
 }
 
 // Send a message to a specific client rather than broadcasting
+// Never blocks: clients that are not connected to this broker, or that are
+// too slow to keep up, are skipped
 func (broker *Broker[T]) SendToClient(clientID string, message T) {
-	broker.clients[clientID] <- message
+	broker.mu.RLock()
+	ch, ok := broker.clients[clientID]
+	broker.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	select {
+	case ch <- message:
+	default:
+		// Client is not ready to receive, drop the message rather than block
+	}
 }
 
 // Send a message to a specific group of clients
+// Never blocks: clients that are not connected to this broker, or that are
+// too slow to keep up, are skipped
 func (broker *Broker[T]) SendToGroup(group string, message T) {
+	// Snapshot the channels under lock, so we don't hold the lock while sending
+	broker.mu.RLock()
+	channels := make([]chan T, 0, len(broker.groups[group]))
 	for _, clientID := range broker.groups[group] {
-		broker.clients[clientID] <- message
+		if ch, ok := broker.clients[clientID]; ok {
+			channels = append(channels, ch)
+		}
+	}
+	broker.mu.RUnlock()
+
+	for _, ch := range channels {
+		select {
+		case ch <- message:
+		default:
+			// Client is not ready to receive, drop the message rather than block
+		}
 	}
 }
 
 // Send a message to all clients
+// Never blocks: clients that are too slow to keep up are skipped
 func (broker *Broker[T]) SendToAll(message T) {
-	for _, clientID := range broker.clients {
-		clientID <- message
+	broker.mu.RLock()
+	channels := make([]chan T, 0, len(broker.clients))
+	for _, ch := range broker.clients {
+		channels = append(channels, ch)
+	}
+	broker.mu.RUnlock()
+
+	for _, ch := range channels {
+		select {
+		case ch <- message:
+		default:
+			// Client is not ready to receive, drop the message rather than block
+		}
 	}
 }
 
 // Add a client to a group
 func (broker *Broker[T]) AddToGroup(clientID string, group string) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+
 	broker.groups[group] = append(broker.groups[group], clientID)
 }
 
 // Remove a client from a group
 func (broker *Broker[T]) RemoveFromGroup(clientID string, group string) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+
 	broker.groups[group] = slices.DeleteFunc(broker.groups[group], func(cid string) bool {
 		return cid == clientID
 	})
@@ -183,6 +243,9 @@ func (broker *Broker[T]) RemoveFromGroup(clientID string, group string) {
 
 // Remove from all groups
 func (broker *Broker[T]) RemoveFromAllGroups(clientID string) {
+	broker.mu.Lock()
+	defer broker.mu.Unlock()
+
 	for group := range broker.groups {
 		broker.groups[group] = slices.DeleteFunc(broker.groups[group], func(cid string) bool {
 			return cid == clientID
@@ -192,6 +255,9 @@ func (broker *Broker[T]) RemoveFromAllGroups(clientID string) {
 
 // Get all groups
 func (broker *Broker[T]) GetGroups() []string {
+	broker.mu.RLock()
+	defer broker.mu.RUnlock()
+
 	var groups []string
 	for group := range broker.groups {
 		groups = append(groups, group)
@@ -202,5 +268,8 @@ func (broker *Broker[T]) GetGroups() []string {
 
 // Get all clients in a group
 func (broker *Broker[T]) GetGroupClients(group string) []string {
+	broker.mu.RLock()
+	defer broker.mu.RUnlock()
+
 	return broker.groups[group]
 }
